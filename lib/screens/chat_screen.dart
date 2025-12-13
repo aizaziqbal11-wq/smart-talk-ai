@@ -10,6 +10,14 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
   List<Message> messages = [];
+  String _selectedRole = 'Friend';
+  final Map<String, IconData> _roleIcons = {
+    'Friend': Icons.people,
+    'Boss/Manager': Icons.business_center,
+    'Family Member': Icons.family_restroom,
+    'Teacher/Professor': Icons.school,
+    'Default': Icons.person,
+  };
 
   void sendMessage() {
     if (_controller.text.trim().isEmpty) return;
@@ -109,12 +117,94 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
               child: Row(
                 children: [
+                  /// ROLE DROPDOWN
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: PopupMenuButton<String>(
+                      tooltip: 'Select role',
+                      onSelected: (value) =>
+                          setState(() => _selectedRole = value),
+                      itemBuilder: (context) => _roleIcons.keys
+                          .where((k) => k != 'Default')
+                          .map(
+                            (role) => PopupMenuItem(
+                              value: role,
+                              child: Row(
+                                children: [
+                                  Icon(_roleIcons[role], color: Colors.indigo),
+                                  const SizedBox(width: 8),
+                                  Text(role),
+                                ],
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(24),
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.indigo.shade500,
+                              Colors.indigo.shade300,
+                            ],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.indigo.withOpacity(0.2),
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _roleIcons[_selectedRole] ??
+                                  _roleIcons['Default'],
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              _selectedRole,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Icon(
+                              Icons.arrow_drop_down,
+                              color: Colors.white,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
                   /// TEXT FIELD
                   Expanded(
                     child: TextField(
                       controller: _controller,
                       decoration: InputDecoration(
                         hintText: "Type your message...",
+                        prefixIcon: Padding(
+                          padding: const EdgeInsets.only(left: 8.0, right: 6.0),
+                          child: Icon(
+                            _roleIcons[_selectedRole] ?? _roleIcons['Default'],
+                            color: Colors.indigo,
+                          ),
+                        ),
+                        prefixIconConstraints: const BoxConstraints(
+                          minWidth: 36,
+                          minHeight: 24,
+                        ),
                         filled: true,
                         fillColor: Colors.grey[100],
                         contentPadding: const EdgeInsets.symmetric(
