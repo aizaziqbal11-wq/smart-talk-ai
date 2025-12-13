@@ -30,6 +30,22 @@ class _ChatScreenState extends State<ChatScreen> {
     _controller.clear();
   }
 
+  void newChat() {
+    setState(() {
+      messages.clear();
+      _selectedRole = 'Friend';
+      _controller.clear();
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Started a new chat'),
+        backgroundColor: Colors.indigo,
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -38,6 +54,45 @@ class _ChatScreenState extends State<ChatScreen> {
       appBar: AppBar(
         elevation: 0,
         centerTitle: true,
+        leadingWidth: 140,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 12.0),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.indigo.shade600, Colors.indigo.shade400],
+              ),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.indigo.withOpacity(0.2),
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: TextButton.icon(
+              onPressed: newChat,
+              icon: const Icon(Icons.add, color: Colors.white, size: 18),
+              label: const Text(
+                'New chat',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                minimumSize: const Size(0, 0),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                backgroundColor: Colors.transparent,
+              ),
+            ),
+          ),
+        ),
         title: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
@@ -262,6 +317,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ],
         ),
       ),
+      // Button moved to AppBar as leading; FAB removed.
     );
   }
 }
