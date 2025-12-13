@@ -52,9 +52,37 @@ class _ChatScreenState extends State<ChatScreen> {
             Expanded(
               child: messages.isEmpty
                   ? Center(
-                      child: Text(
-                        "Start a conversation 👋",
-                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            "Start a conversation 👋",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.indigo[800],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            "Your intelligent communication assistant",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.indigoAccent,
+                              fontStyle: FontStyle.italic,
+                              letterSpacing: 0.2,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.indigoAccent.withOpacity(0.3),
+                                  blurRadius: 6,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     )
                   : ListView.builder(
