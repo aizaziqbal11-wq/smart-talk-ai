@@ -158,13 +158,23 @@ class _ChatScreenState extends State<ChatScreen> {
                             "Your intelligent communication assistant",
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.indigoAccent,
+                              fontFamily: 'Roboto',
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
                               fontStyle: FontStyle.italic,
-                              letterSpacing: 0.2,
+                              letterSpacing: 0.4,
+                              foreground: Paint()
+                                ..shader = LinearGradient(
+                                  colors: [
+                                    Color(0xFF5B5CF7),
+                                    Color(0xFF00C6FF),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ).createShader(Rect.fromLTWH(0, 0, 200, 24)),
                               shadows: [
                                 Shadow(
-                                  color: Colors.indigoAccent.withOpacity(0.3),
+                                  color: Colors.indigo.withOpacity(0.2),
                                   blurRadius: 6,
                                   offset: Offset(0, 2),
                                 ),
