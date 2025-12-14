@@ -3,8 +3,10 @@ import '../widgets/chat_bubble.dart';
 import '../models/message_model.dart';
 
 class ChatScreen extends StatefulWidget {
+  const ChatScreen({super.key});
+
   @override
-  _ChatScreenState createState() => _ChatScreenState();
+  State<ChatScreen> createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
@@ -38,10 +40,10 @@ class _ChatScreenState extends State<ChatScreen> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Started a new chat'),
+      const SnackBar(
+        content: Text('Started a new chat'),
         backgroundColor: Colors.indigo,
-        duration: const Duration(seconds: 1),
+        duration: Duration(seconds: 1),
       ),
     );
   }
@@ -65,9 +67,9 @@ class _ChatScreenState extends State<ChatScreen> {
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.indigo.withOpacity(0.2),
+                  color: Colors.indigo.withAlpha(51),
                   blurRadius: 4,
-                  offset: Offset(0, 2),
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
@@ -96,7 +98,7 @@ class _ChatScreenState extends State<ChatScreen> {
         title: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.08),
+            color: Colors.white.withAlpha(20),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: Colors.white24),
           ),
@@ -106,7 +108,7 @@ class _ChatScreenState extends State<ChatScreen> {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
+                  color: Colors.white.withAlpha(31),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -139,58 +141,171 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             /// CHAT AREA
             Expanded(
-              child: messages.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            "Start a conversation 👋",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.indigo[800],
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            "Your intelligent communication assistant",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: 'Roboto',
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              fontStyle: FontStyle.italic,
-                              letterSpacing: 0.4,
-                              foreground: Paint()
-                                ..shader = LinearGradient(
-                                  colors: [
-                                    Color(0xFF5B5CF7),
-                                    Color(0xFF00C6FF),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ).createShader(Rect.fromLTWH(0, 0, 200, 24)),
-                              shadows: [
-                                Shadow(
-                                  color: Colors.indigo.withOpacity(0.2),
-                                  blurRadius: 6,
-                                  offset: Offset(0, 2),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxWidth >= 1000) {
+                    // two column layout: left sidebar (roles/history) + chat area
+                    return Row(
+                      children: [
+                        Container(
+                          width: 320,
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            children: [
+                              Text(
+                                'Chats',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                              const SizedBox(height: 12),
+                              Expanded(
+                                child: ListView(
+                                  children: messages
+                                      .map(
+                                        (m) => ListTile(
+                                          leading: CircleAvatar(
+                                            child: Icon(
+                                              m.isUser
+                                                  ? Icons.person
+                                                  : Icons.smart_toy,
+                                            ),
+                                          ),
+                                          title: Text(
+                                            m.text,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      itemCount: messages.length,
-                      itemBuilder: (context, index) {
-                        return ChatBubble(message: messages[index]);
-                      },
-                    ),
+                        ),
+                        const VerticalDivider(width: 1),
+                        Expanded(
+                          child: messages.isEmpty
+                              ? Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        "Start a conversation 👋",
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.indigo[800],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        "Your intelligent communication assistant",
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontFamily: 'Roboto',
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                          fontStyle: FontStyle.italic,
+                                          letterSpacing: 0.4,
+                                          foreground: Paint()
+                                            ..shader =
+                                                LinearGradient(
+                                                  colors: [
+                                                    Color(0xFF5B5CF7),
+                                                    Color(0xFF00C6FF),
+                                                  ],
+                                                  begin: Alignment.topLeft,
+                                                  end: Alignment.bottomRight,
+                                                ).createShader(
+                                                  Rect.fromLTWH(0, 0, 200, 24),
+                                                ),
+                                          shadows: [
+                                            Shadow(
+                                              color: Colors.indigo.withAlpha(
+                                                51,
+                                              ),
+                                              blurRadius: 6,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : ListView.builder(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                  ),
+                                  itemCount: messages.length,
+                                  itemBuilder: (context, index) {
+                                    return ChatBubble(message: messages[index]);
+                                  },
+                                ),
+                        ),
+                      ],
+                    );
+                  }
+
+                  // Mobile/tablet single column layout
+                  return messages.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                "Start a conversation 👋",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.indigo[800],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                "Your intelligent communication assistant",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: 'Roboto',
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  fontStyle: FontStyle.italic,
+                                  letterSpacing: 0.4,
+                                  foreground: Paint()
+                                    ..shader =
+                                        LinearGradient(
+                                          colors: [
+                                            Color(0xFF5B5CF7),
+                                            Color(0xFF00C6FF),
+                                          ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ).createShader(
+                                          Rect.fromLTWH(0, 0, 200, 24),
+                                        ),
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.indigo.withAlpha(51),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          itemCount: messages.length,
+                          itemBuilder: (context, index) {
+                            return ChatBubble(message: messages[index]);
+                          },
+                        );
+                },
+              ),
             ),
 
             /// INPUT AREA
@@ -198,7 +313,7 @@ class _ChatScreenState extends State<ChatScreen> {
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: Colors.white,
-                boxShadow: [
+                boxShadow: const [
                   BoxShadow(
                     blurRadius: 10,
                     color: Colors.black12,
@@ -241,9 +356,9 @@ class _ChatScreenState extends State<ChatScreen> {
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.indigo.withOpacity(0.2),
+                              color: Colors.indigo.withAlpha(51),
                               blurRadius: 4,
-                              offset: Offset(0, 2),
+                              offset: const Offset(0, 2),
                             ),
                           ],
                         ),
@@ -327,7 +442,6 @@ class _ChatScreenState extends State<ChatScreen> {
           ],
         ),
       ),
-      // Button moved to AppBar as leading; FAB removed.
     );
   }
 }

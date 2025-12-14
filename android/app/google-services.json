@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "621411034968",
+    "project_id": "smart-talk-ai-cc6e2",
+    "storage_bucket": "smart-talk-ai-cc6e2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:621411034968:android:e5c82a5ec767d6a13f272d",
+        "android_client_info": {
+          "package_name": "com.example.smart_talk_ai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBV0PA9Eqf2P1zLoJFLeV65TFoBwXfoThw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class HistoryTile extends StatelessWidget {
   final String text;
 
-  HistoryTile({required this.text});
+  const HistoryTile({super.key, required this.text});
 
   @override
   Widget build(BuildContext context) {

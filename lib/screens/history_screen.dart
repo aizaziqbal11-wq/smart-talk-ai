@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../widgets/history_tile.dart';
 
 class HistoryScreen extends StatelessWidget {
-  final List<String> history = [
+  const HistoryScreen({super.key});
+
+  static const List<String> history = [
     "How to improve communication?",
     "Explain 7Cs of communication",
     "Public speaking tips",
