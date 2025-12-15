@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/chat_bubble.dart';
 import '../models/message_model.dart';
+import '../services/chat_service.dart';
+import 'chat_screen_from_history.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -11,7 +15,9 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
-  List<Message> messages = [];
+  String? _chatId;
+  final ChatService _chatService = ChatService();
+  Stream<QuerySnapshot<Map<String, dynamic>>>? _messagesStream;
   String _selectedRole = 'Friend';
   final Map<String, IconData> _roleIcons = {
     'Friend': Icons.people,
@@ -21,30 +27,140 @@ class _ChatScreenState extends State<ChatScreen> {
     'Default': Icons.person,
   };
 
-  void sendMessage() {
-    if (_controller.text.trim().isEmpty) return;
-
-    setState(() {
-      messages.add(Message(text: _controller.text, isUser: true));
-      messages.add(Message(text: "This is AI response (demo)", isUser: false));
-    });
+  Future<void> sendMessage() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty || _chatId == null) return;
 
     _controller.clear();
+    await _chatService.addMessage(chatId: _chatId!, text: text, isUser: true);
+
+    // If chat has no title yet, set it to the first part of this message
+    final chatDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .collection('chats')
+        .doc(_chatId)
+        .get();
+    final currentTitle = chatDoc.data()?['title'] as String? ?? '';
+    if (currentTitle.isEmpty) {
+      final candidate = text.split('\n').first;
+      final title = candidate.length > 40
+          ? '${candidate.substring(0, 40)}...'
+          : candidate;
+      await _chatService.updateChatTitle(chatId: _chatId!, title: title);
+    }
+
+    // Dummy AI response
+    await _chatService.addMessage(
+      chatId: _chatId!,
+      text: 'This is AI response (demo)',
+      isUser: false,
+    );
   }
 
   void newChat() {
-    setState(() {
-      messages.clear();
-      _selectedRole = 'Friend';
-      _controller.clear();
-    });
-
+    _createChat();
+    setState(() => _selectedRole = 'Friend');
+    _controller.clear();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Started a new chat'),
         backgroundColor: Colors.indigo,
         duration: Duration(seconds: 1),
       ),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _createChat();
+  }
+
+  Future<void> _createChat() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign in to start a chat')),
+      );
+      return;
+    }
+
+    final id = await _chatService.createChat();
+    setState(() {
+      _chatId = id;
+      _messagesStream = _chatService.streamMessages(id);
+    });
+  }
+
+  Future<void> _openChatsList() async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return SafeArea(
+          child: SizedBox(
+            height: MediaQuery.of(ctx).size.height * 0.6,
+            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: _chatService.streamChats(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final docs = snapshot.data?.docs ?? [];
+                if (docs.isEmpty)
+                  return const Center(child: Text('No chats yet'));
+                return ListView.separated(
+                  itemCount: docs.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final doc = docs[index];
+                    final data = doc.data();
+                    final title = (data['title'] as String?)?.isNotEmpty == true
+                        ? data['title'] as String
+                        : 'Untitled';
+                    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                      stream: _chatService.streamLastMessage(doc.id),
+                      builder: (context, lastSnap) {
+                        final lastDocs = lastSnap.data?.docs;
+                        final lastText =
+                            (lastDocs != null && lastDocs.isNotEmpty)
+                            ? (lastDocs.first.data()['text'] as String? ?? '')
+                            : null;
+                        return ListTile(
+                          title: Text(title),
+                          subtitle: lastText != null
+                              ? Text(
+                                  lastText,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                )
+                              : null,
+                          leading: const CircleAvatar(
+                            child: Icon(Icons.chat_bubble_outline),
+                          ),
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ChatScreenFromHistory(
+                                  chatId: doc.id,
+                                  title: title,
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -125,6 +241,13 @@ class _ChatScreenState extends State<ChatScreen> {
             ],
           ),
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Chats',
+            onPressed: _openChatsList,
+            icon: const Icon(Icons.menu),
+          ),
+        ],
         backgroundColor: Colors.indigo,
       ),
 
@@ -158,33 +281,58 @@ class _ChatScreenState extends State<ChatScreen> {
                               ),
                               const SizedBox(height: 12),
                               Expanded(
-                                child: ListView(
-                                  children: messages
-                                      .map(
-                                        (m) => ListTile(
-                                          leading: CircleAvatar(
-                                            child: Icon(
-                                              m.isUser
-                                                  ? Icons.person
-                                                  : Icons.smart_toy,
-                                            ),
-                                          ),
-                                          title: Text(
-                                            m.text,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      )
-                                      .toList(),
-                                ),
+                                child:
+                                    StreamBuilder<
+                                      QuerySnapshot<Map<String, dynamic>>
+                                    >(
+                                      stream: _chatService.streamChats(),
+                                      builder: (context, snapshot) {
+                                        if (snapshot.connectionState ==
+                                            ConnectionState.waiting) {
+                                          return const Center(
+                                            child: CircularProgressIndicator(),
+                                          );
+                                        }
+                                        final docs = snapshot.data?.docs ?? [];
+                                        return ListView.builder(
+                                          itemCount: docs.length,
+                                          itemBuilder: (context, index) {
+                                            final d = docs[index];
+                                            final title =
+                                                (d.data()['title'] as String?)
+                                                        ?.isNotEmpty ==
+                                                    true
+                                                ? d.data()['title'] as String
+                                                : 'Untitled';
+                                            return ListTile(
+                                              leading: const CircleAvatar(
+                                                child: Icon(
+                                                  Icons.chat_bubble_outline,
+                                                ),
+                                              ),
+                                              title: Text(title),
+                                              onTap: () => Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      ChatScreenFromHistory(
+                                                        chatId: d.id,
+                                                        title: title,
+                                                      ),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        );
+                                      },
+                                    ),
                               ),
                             ],
                           ),
                         ),
                         const VerticalDivider(width: 1),
                         Expanded(
-                          child: messages.isEmpty
+                          child: _chatId == null
                               ? Center(
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
@@ -234,13 +382,37 @@ class _ChatScreenState extends State<ChatScreen> {
                                     ],
                                   ),
                                 )
-                              : ListView.builder(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 10,
-                                  ),
-                                  itemCount: messages.length,
-                                  itemBuilder: (context, index) {
-                                    return ChatBubble(message: messages[index]);
+                              : StreamBuilder<
+                                  QuerySnapshot<Map<String, dynamic>>
+                                >(
+                                  stream: _messagesStream,
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return const Center(
+                                        child: CircularProgressIndicator(),
+                                      );
+                                    }
+                                    final docs = snapshot.data?.docs ?? [];
+                                    if (docs.isEmpty) {
+                                      return const Center(
+                                        child: Text('No messages yet'),
+                                      );
+                                    }
+                                    return ListView.builder(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 10,
+                                      ),
+                                      itemCount: docs.length,
+                                      itemBuilder: (context, index) {
+                                        final d = docs[index].data();
+                                        final msg = Message(
+                                          text: d['text'] as String? ?? '',
+                                          isUser: d['isUser'] as bool? ?? false,
+                                        );
+                                        return ChatBubble(message: msg);
+                                      },
+                                    );
                                   },
                                 ),
                         ),
@@ -249,7 +421,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   }
 
                   // Mobile/tablet single column layout
-                  return messages.isEmpty
+                  return _chatId == null
                       ? Center(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -297,11 +469,33 @@ class _ChatScreenState extends State<ChatScreen> {
                             ],
                           ),
                         )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          itemCount: messages.length,
-                          itemBuilder: (context, index) {
-                            return ChatBubble(message: messages[index]);
+                      : StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                          stream: _messagesStream,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            }
+                            final docs = snapshot.data?.docs ?? [];
+                            if (docs.isEmpty) {
+                              return const Center(
+                                child: Text('No messages yet'),
+                              );
+                            }
+                            return ListView.builder(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              itemCount: docs.length,
+                              itemBuilder: (context, index) {
+                                final d = docs[index].data();
+                                final msg = Message(
+                                  text: d['text'] as String? ?? '',
+                                  isUser: d['isUser'] as bool? ?? false,
+                                );
+                                return ChatBubble(message: msg);
+                              },
+                            );
                           },
                         );
                 },
